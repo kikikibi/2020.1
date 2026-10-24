@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#FFD3E0">
+  <meta name="description" content="2020년으로 회귀한 계현, 막내 강민이의 호감도를 100으로 올려라! 메신저형 비주얼노벨 웹 게임">
+  <title>치즈볼 100개로는 어림도 없다구!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 치즈볼 아이콘 (하트 대신 사용) -->
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <radialGradient id="cbGrad" cx="35%" cy="30%" r="75%">
+        <stop offset="0" stop-color="#FFF0B8"/>
+        <stop offset=".5" stop-color="#F9BE3E"/>
+        <stop offset="1" stop-color="#DC842A"/>
+      </radialGradient>
+    </defs>
+    <symbol id="cheeseball" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="14" fill="url(#cbGrad)"/>
+      <g fill="#E0902C" opacity=".55">
+        <circle cx="9" cy="11" r="1.3"/><circle cx="22" cy="8.5" r="1.1"/>
+        <circle cx="25" cy="19" r="1.3"/><circle cx="12" cy="25" r="1"/><circle cx="19" cy="26" r=".9"/>
+      </g>
+      <ellipse cx="11" cy="9.5" rx="3.4" ry="2" fill="#fff" opacity=".55" transform="rotate(-25 11 9.5)"/>
+      <circle cx="12" cy="17" r="1.6" fill="#5A3A1A"/>
+      <circle cx="20" cy="17" r="1.6" fill="#5A3A1A"/>
+      <path d="M14 20.3q2 1.9 4 0" stroke="#5A3A1A" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="9" cy="20" rx="2.1" ry="1.2" fill="#FF8FB1" opacity=".75"/>
+      <ellipse cx="23" cy="20" rx="2.1" ry="1.2" fill="#FF8FB1" opacity=".75"/>
+    </symbol>
+  </svg>
+
+  <main id="phone">
+
+    <!-- ===== 타이틀 ===== -->
+    <section id="title" class="screen active" aria-label="타이틀 화면">
+      <div class="title-bg" aria-hidden="true"></div>
+      <div class="title-glow" aria-hidden="true"></div>
+      <div class="title-chars">
+        <img src="assets/title_char.png" alt="강민과 계현" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+        <svg class="silhouettes" hidden viewBox="0 0 300 520" aria-hidden="true">
+          <defs>
+            <linearGradient id="silA" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#E9D8FF"/><stop offset="1" stop-color="#FFC4D8"/>
+            </linearGradient>
+            <linearGradient id="silB" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#FFC7D8"/><stop offset="1" stop-color="#FFE6EE"/>
+            </linearGradient>
+          </defs>
+          <g stroke="#fff" stroke-width="5" opacity=".95">
+            <path d="M112 530 C112 335 150 262 204 262 C258 262 296 335 296 530 Z" fill="url(#silA)"/>
+            <circle cx="204" cy="160" r="62" fill="url(#silA)"/>
+            <path d="M14 530 C14 380 52 318 106 318 C160 318 196 380 196 530 Z" fill="url(#silB)"/>
+            <circle cx="106" cy="226" r="54" fill="url(#silB)"/>
+          </g>
+          <use href="#cheeseball" x="140" y="62" width="40" height="40"/>
+          <g fill="#fff">
+            <path d="M262 70l4 10 10 4-10 4-4 10-4-10-10-4 10-4z"/>
+            <path d="M46 150l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="title-text">
+        <span class="hearts" aria-hidden="true"><i>♥</i><i>♡</i><i>♥</i><i>♡</i></span>
+        <h1 aria-label="치즈볼 100개로는 어림도 없다구!">
+          <span class="t1">치즈볼 100개로는</span>
+          <span class="t2">어림도</span>
+          <span class="t3">없다구!</span>
+        </h1>
+      </div>
+
+      <nav class="menu" aria-label="메인 메뉴">
+        <button class="menu-btn" type="button" data-act="start">시작하기</button>
+        <button class="menu-btn" type="button" data-act="continue">이어하기</button>
+        <button class="menu-btn" type="button" data-act="gallery">엔딩 도감</button>
+        <button class="menu-btn" type="button" data-act="settings">설정</button>
+      </nav>
+      <p class="title-foot" id="titleFoot">화면을 터치하면 음악이 흘러나와요 ♪</p>
+    </section>
+
+    <!-- ===== 시스템창 ===== -->
+    <section id="system" class="screen" aria-label="시스템 메시지">
+      <div class="sys-frame">
+        <p class="sys-label">SYSTEM</p>
+        <p class="sys-text" id="sysText"></p>
+        <p class="sys-next" id="sysNext">▼ 화면을 탭하세요</p>
+      </div>
+    </section>
+
+    <!-- ===== 메신저 ===== -->
+    <section id="messenger" class="screen" aria-label="메신저">
+      <div class="statusbar">
+        <span class="sb-time">9:41</span>
+        <span class="sb-right">
+          <span class="meter" title="유강민의 호감도 (알 수 없음)"><svg class="cb"><use href="#cheeseball"/></svg><b>???</b></span>
+          <span class="batt" aria-hidden="true"></span>
+        </span>
+      </div>
+      <header class="chat-head">
+        <button class="icon-btn" id="backBtn" type="button" aria-label="타이틀로 돌아가기">‹</button>
+        <div class="chat-title">
+          <p><strong id="roomName">강냉이</strong> <span id="roomCount"></span></p>
+          <p class="chat-date" id="roomDate">1월 9일</p>
+        </div>
+        <span class="head-icons" aria-hidden="true">⌕ ☰</span>
+      </header>
+      <div class="chat-body" id="chatBody">
+        <div class="chat-log" id="chatLog" aria-live="polite"></div>
+      </div>
+      <div class="chat-bottom" id="chatBottom">
+        <p class="thought" id="thought" aria-live="polite"></p>
+        <div class="choices" id="choices"></div>
+        <div class="fake-input" aria-hidden="true">
+          <span>＋</span><span class="pill">메시지 입력</span><span>☺</span><span class="send">#</span>
+        </div>
+      </div>
+      <div class="narr" id="narr" hidden>
+        <div class="narr-box">
+          <span class="narr-name" id="narrName"></span>
+          <p id="narrText"></p>
+          <span class="narr-next" aria-hidden="true">▼</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 홈 화면 ===== -->
+    <section id="home" class="screen" aria-label="휴대폰 홈 화면">
+      <div class="statusbar light">
+        <span class="sb-time">9:41</span>
+        <span class="sb-right">
+          <span class="meter"><svg class="cb"><use href="#cheeseball"/></svg><b>???</b></span>
+          <span class="batt" aria-hidden="true"></span>
+        </span>
+      </div>
+      <div class="home-clock">
+        <b class="sb-time">9:41</b>
+        <span id="homeDate">6월 10일</span>
+      </div>
+      <div class="app-grid">
+        <button class="app" type="button" data-app="messenger"><span class="app-icon i-msg">💬</span><span>메시지</span></button>
+        <button class="app" type="button" data-app="music"><span class="app-icon i-music">♫</span><span>뮤직</span><i class="badge">1</i></button>
+        <button class="app" type="button" data-app="photo"><span class="app-icon i-photo">🌷</span><span>사진</span></button>
+        <button class="app" type="button" data-app="calendar"><span class="app-icon i-cal">📅</span><span>캘린더</span></button>
+        <button class="app" type="button" data-app="camera"><span class="app-icon i-cam">📷</span><span>카메라</span></button>
+        <button class="app" type="button" data-app="memo"><span class="app-icon i-memo">📝</span><span>메모</span></button>
+        <button class="app" type="button" data-app="weather"><span class="app-icon i-wea">☀️</span><span>날씨</span></button>
+        <button class="app" type="button" data-app="settings"><span class="app-icon i-set">⚙️</span><span>설정</span></button>
+      </div>
+      <div class="dock">
+        <span class="app-icon i-call">📞</span><span class="app-icon i-msg">💬</span><span class="app-icon i-music">♫</span><span class="app-icon i-cam">📷</span>
+      </div>
+    </section>
+
+    <!-- ===== 음악 앱 ===== -->
+    <section id="music" class="screen" aria-label="음악 앱">
+      <div class="statusbar light">
+        <span class="sb-time">9:41</span>
+        <span class="sb-right"><span class="batt" aria-hidden="true"></span></span>
+      </div>
+      <header class="music-head">
+        <button type="button" id="musicBack" class="icon-btn light">‹ 홈</button>
+        <span>지금 추천하는 곡</span>
+      </header>
+      <div class="album-wrap">
+        <img id="albumImg" src="assets/album.jpg" alt="Tangerine 앨범 커버" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+        <div class="album-ph" hidden><span>🍊</span><b>Tangerine</b></div>
+      </div>
+      <div class="track">
+        <h2>Tangerine</h2>
+        <p>B.I</p>
+        <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="progress">
+        <div class="bar"><i id="musicBar"></i></div>
+        <div class="times"><span id="musicCur">0:00</span><span id="musicDur">0:25</span></div>
+      </div>
+      <div class="controls">
+        <button type="button" disabled aria-label="이전 곡">⏮</button>
+        <button type="button" id="playBtn" class="play" aria-label="재생">▶</button>
+        <button type="button" disabled aria-label="다음 곡">⏭</button>
+      </div>
+      <p class="music-note" id="musicNote">재생을 누르면 노래가 흘러나와요</p>
+    </section>
+
+    <!-- ===== SNS 피드 ===== -->
+    <section id="insta" class="screen" aria-label="SNS 피드">
+      <div class="statusbar">
+        <span class="sb-time">9:41</span>
+        <span class="sb-right"><span class="batt" aria-hidden="true"></span></span>
+      </div>
+      <header class="feed-head"><span class="feed-logo">Snapfeed</span><span aria-hidden="true">♡ ✈</span></header>
+      <article class="post">
+        <div class="post-user"><span class="post-ava">🌽</span><b>kangnaengi_0125</b><span class="post-more">···</span></div>
+        <div class="post-media" id="postMedia"></div>
+        <div class="post-actions" aria-hidden="true"><span>♡</span><span>💬</span><span>✈</span><span class="save">⌑</span></div>
+        <p class="post-likes">좋아요 <b>1,025</b>개</p>
+        <p class="post-cap"><b>kangnaengi_0125</b> <span id="postCap"></span></p>
+      </article>
+      <button type="button" class="skip" id="instaSkip" hidden>건너뛰기 ›</button>
+    </section>
+
+    <!-- ===== 엔딩 카드 ===== -->
+    <section id="endcard" class="screen" aria-label="엔딩">
+      <div class="end-inner">
+        <svg class="cb end-cb"><use href="#cheeseball"/></svg>
+        <p class="end-label" id="endLabel">ENDING 1</p>
+        <h2 id="endTitle">happy ending</h2>
+        <button class="menu-btn center" type="button" id="toReveal">호감도 공개 보기</button>
+      </div>
+    </section>
+
+    <!-- ===== 호감도 공개 ===== -->
+    <section id="reveal" class="screen" aria-label="호감도 공개">
+      <div class="reveal-scroll">
+        <header class="reveal-head">
+          <p>2026년으로 돌아온 당신에게</p>
+          <h2>유강민 호감도 공개</h2>
+        </header>
+        <div class="score-card">
+          <svg class="cb"><use href="#cheeseball"/></svg>
+          <b id="ratio">0%</b>
+          <p id="revealEnding"></p>
+          <p class="raw" id="revealRaw"></p>
+        </div>
+        <h3 class="history-title">나의 선택 기록</h3>
+        <ol class="history" id="historyList"></ol>
+        <div class="reveal-btns">
+          <button class="menu-btn center" type="button" id="againBtn">처음부터 다시</button>
+          <button class="menu-btn center" type="button" id="titleBtn">타이틀로</button>
+        </div>
+      </div>
+    </section>
+
+    <button type="button" id="homebar" class="homebar" aria-label="홈 화면으로"><i></i></button>
+
+    <div class="fader" id="fader" aria-hidden="true"></div>
+    <div class="black-text" id="blackText" aria-live="polite"><p></p></div>
+    <div class="glitch" id="glitch" aria-hidden="true"></div>
+
+    <div class="modal" id="modal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <h3 id="modalTitle"></h3>
+        <div id="modalBody"></div>
+        <div class="modal-actions" id="modalActions"></div>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

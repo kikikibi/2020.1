@@ -118,37 +118,36 @@ p { margin: 0; }
 /* =========================================================
    타이틀
    ========================================================= */
-#title { background: #FFD3EA; }
+#title { background: #FFE6F1; }
 
-/* 핑크 픽셀 격자 배경 */
+/* 부드러운 핑크 픽셀 격자 배경 */
 .title-bg {
   position: absolute;
   top: -96px; left: -96px; right: -96px; bottom: -96px;
   background-image:
-    linear-gradient(90deg, rgba(255, 255, 255, .35) 50%, transparent 0),
-    linear-gradient(rgba(255, 255, 255, .35) 50%, transparent 0),
-    radial-gradient(circle at 50% 50%, rgba(255, 120, 190, .35) 0 6px, transparent 7px);
-  background-size: 32px 32px, 32px 32px, 96px 96px;
+    radial-gradient(circle at 24px 24px, rgba(255, 255, 255, .9) 0 6px, transparent 7px),
+    linear-gradient(90deg, rgba(255, 150, 195, .22) 50%, transparent 0),
+    linear-gradient(rgba(255, 150, 195, .22) 50%, transparent 0);
+  background-size: 48px 48px, 96px 96px, 96px 96px;
   animation: drift 22s linear infinite;
 }
 @keyframes drift { to { transform: translate(96px, 96px); } }
 .title-glow {
   position: absolute; inset: 0;
   background:
-    radial-gradient(ellipse 90% 36% at 50% 24%, rgba(255, 255, 255, .85), transparent 72%),
-    linear-gradient(to top, rgba(255, 105, 180, .45), transparent 42%);
+    radial-gradient(ellipse 85% 34% at 40% 24%, rgba(255, 250, 245, .95), transparent 72%),
+    linear-gradient(to top, rgba(255, 196, 216, .55), transparent 40%);
 }
 
-/* 상단 "loading" 전광판 */
+/* 상단 "loading" 전광판 (얇고 연하게) */
 #title::before {
   content: "please wait, game is loading..   please wait, game is loading..   please wait, game is loading..   please wait, game is loading..";
   position: absolute; left: 0; top: 0; z-index: 5;
-  width: 200%; height: 22px; line-height: 22px;
-  background: #fff;
-  color: #FF1FA9;
-  font-family: var(--pixel); font-size: 12px; white-space: pre;
-  border-bottom: 2px solid #FF8FD0;
-  animation: marquee 14s linear infinite;
+  width: 200%; height: 20px; line-height: 20px;
+  background: rgba(255, 255, 255, .75);
+  color: #F0509A;
+  font-family: var(--pixel); font-size: 11px; white-space: pre;
+  animation: marquee 16s linear infinite;
 }
 @keyframes marquee { to { transform: translateX(-50%); } }
 
@@ -168,60 +167,41 @@ p { margin: 0; }
 @keyframes breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 @keyframes charIn { from { opacity: 0; translate: 30px 0; } to { opacity: 1; translate: 0 0; } }
 
-/* 제목 영역: 위쪽에 고정, 메뉴와 안 겹치게 높이 제한 */
+/* 제목: 메뉴와 같은 왼쪽 라인, 메뉴 위쪽에만 배치 */
 .title-text {
-  position: absolute; left: 14px; right: 14px;
-  top: max(9cqh, 52px);
-  z-index: 3; text-align: center;
-  padding: 34px 10px 18px;
-  max-height: 34cqh;
+  position: absolute; left: 22px; right: 22px;
+  top: max(11cqh, 56px);
+  z-index: 3; text-align: left;
+  max-height: 32cqh;
 }
-/* 윈도우 창 프레임 */
-.title-text::before {
-  content: "";
-  position: absolute; inset: 0; z-index: -1;
-  background:
-    linear-gradient(90deg, #FF5FC0, #FF9ADA) top / 100% 22px no-repeat,
-    rgba(255, 255, 255, .72);
-  border: 3px solid #fff;
-  outline: 2px solid #FF6FC6;
-  box-shadow: 6px 6px 0 rgba(255, 31, 169, .35);
-}
-.title-text::after {
-  content: "cheeseball.exe   _ □ ×";
-  position: absolute; top: 2px; left: 8px; right: 8px;
-  font-family: var(--pixel); font-size: 11px; line-height: 18px;
-  color: #fff; text-align: left; word-spacing: 2px;
-}
-
 #title h1 {
   margin: 0; font-family: var(--pixel); font-weight: 700; line-height: 1.12;
-  color: #FF1FA9;
-  animation: pixBob 1.6s steps(2) infinite 1.2s;
+  color: #F0509A;
+  animation: pixBob 2.4s steps(2) infinite 1.2s;
 }
 #title h1 span {
   display: block;
-  -webkit-text-stroke: 6px #fff;
+  -webkit-text-stroke: 7px #fff;
   paint-order: stroke fill;
-  text-shadow: 3px 3px 0 #3FD8FF, 5px 5px 0 rgba(255, 31, 169, .25); /* 청록 엣지 */
+  text-shadow: 2px 2px 0 #7FDDF5, 4px 5px 0 rgba(238, 106, 148, .22);
   animation: pop .6s steps(5) both;
 }
-#title .t1 { font-size: min(9cqw, 4cqh); animation-delay: .1s; }
-#title .t2 { font-size: min(17cqw, 7.4cqh); animation-delay: .3s; transform: none; }
-#title .t3 { font-size: min(17cqw, 7.4cqh); animation-delay: .5s; transform: none; color: #FF2FB4; }
+#title .t1 { font-size: min(8.4cqw, 3.8cqh); color: #C9819A; animation-delay: .1s; }
+#title .t2 { font-size: min(16cqw, 7cqh); animation-delay: .3s; transform: none; }
+#title .t3 { font-size: min(16cqw, 7cqh); animation-delay: .5s; transform: none; padding-left: 7cqw; color: #F0509A; }
 @keyframes pixBob { 50% { transform: translateY(-3px); } }
 
 #title .hearts i {
-  position: absolute; font-style: normal; color: #FF4DB8;
+  position: absolute; font-style: normal; color: #FF8FB1;
   -webkit-text-stroke: 3px #fff; paint-order: stroke fill;
-  text-shadow: 2px 2px 0 #3FD8FF;
-  animation: pixHeart 1.2s steps(2) infinite;
+  text-shadow: 2px 2px 0 #7FDDF5;
+  animation: pixHeart 1.4s steps(2) infinite;
 }
-#title .hearts i:nth-child(1) { top: -14px; left: -6px; font-size: 26px; }
-#title .hearts i:nth-child(2) { top: 40%; right: -10px; font-size: 22px; animation-delay: -.4s; }
-#title .hearts i:nth-child(3) { bottom: -14px; left: 0; font-size: 20px; animation-delay: -.8s; }
-#title .hearts i:nth-child(4) { top: -16px; right: 14%; font-size: 18px; animation-delay: -.2s; }
-@keyframes pixHeart { 50% { transform: scale(1.2); } }
+#title .hearts i:nth-child(1) { top: -22px; left: -4px; font-size: 22px; }
+#title .hearts i:nth-child(2) { top: 36%; right: 0; font-size: 22px; animation-delay: -.4s; }
+#title .hearts i:nth-child(3) { bottom: -18px; left: 30%; font-size: 18px; animation-delay: -.8s; }
+#title .hearts i:nth-child(4) { top: -20px; right: 22%; font-size: 16px; animation-delay: -.2s; }
+@keyframes pixHeart { 50% { transform: scale(1.18); } }
 @keyframes heartBeat { 0%, 100% { scale: 1; } 15% { scale: 1.18; } 30% { scale: 1; } 45% { scale: 1.1; } }
 @keyframes titleBob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-6px) rotate(-1deg); } }
 

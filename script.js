@@ -319,6 +319,21 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CB = '<svg class="cb" aria-hidden="true"><use href="#cheeseball"/></svg>';
 
+/* ---------- [수정] 프사 원형 / 인스타 미디어 스타일 (CSS를 덮어씀) ---------- */
+(function injectFixStyle() {
+  const st = document.createElement('style');
+  st.textContent = `
+    .ava{width:38px;height:38px;border-radius:50%;overflow:hidden;flex:0 0 auto;aspect-ratio:1/1;
+      display:inline-flex;align-items:center;justify-content:center}
+    .ava img,.post-ava img{width:100%;height:100%;object-fit:cover;object-position:center;border-radius:50%;display:block}
+    .post-ava{width:32px;height:32px;border-radius:50%;overflow:hidden;flex:0 0 auto;aspect-ratio:1/1;
+      display:inline-flex;align-items:center;justify-content:center}
+    .post-media{min-height:260px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#111}
+    .post-media img,.post-media video{width:100%;height:100%;max-height:70vh;object-fit:contain;display:block;background:#000}
+  `;
+  document.head.appendChild(st);
+})();
+
 const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* 저장 불가 환경 */ } },
@@ -426,26 +441,50 @@ const tapNext = () => wait(2500);
 
 /* ---------- 화면 전환 ---------- */
 const fader = $('#fader');
+
+// [수정] CSS가 꼬여도 다음 화면이 반드시 보이도록 보정
+const FORCE_PROPS = ['display', 'flexDirection', 'visibility', 'opacity', 'pointerEvents', 'zIndex', 'position', 'inset'];
+function clearForce() {
+  document.querySelectorAll('.screen').forEach((s) => FORCE_PROPS.forEach((p) => { s.style[p] = ''; }));
+}
+function ensureVisible(el) {
+  if (!el || !el.classList.contains('active')) return;
+  const cs = getComputedStyle(el);
+  const r = el.getBoundingClientRect();
+  const hidden = cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.95;
+  const collapsed = r.width < 10 || r.height < 10;
+  if (hidden || collapsed) {
+    console.warn('화면 강제 표시:', el.id, { display: cs.display, visibility: cs.visibility, opacity: cs.opacity, w: r.width, h: r.height });
+    Object.assign(el.style, { display: 'flex', flexDirection: 'column', visibility: 'visible', opacity: '1', pointerEvents: 'auto', zIndex: '6' });
+    if (collapsed) Object.assign(el.style, { position: 'absolute', inset: '0' });
+  }
+}
+
 async function goScreen(id, mode = 'cross', dur = 900) {
   const next = $('#' + id);
+  if (!next) { console.error(new Error('화면 #' + id + ' 이(가) HTML에 없어요')); return; }
   const cur = $('.screen.active');
   if (cur === next) return;
+  clearForce();
   if (mode === 'black') {
     fader.style.setProperty('--fade', dur + 'ms');
     fader.classList.add('show');
     await sleep(dur);
-    cur && cur.classList.remove('active');
+    document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active', 'leaving'));
     next.classList.add('active');
     updateHomebar();
     await sleep(500);
+    ensureVisible(next);
     fader.classList.remove('show');
     await sleep(dur);
   } else {
+    document.querySelectorAll('.screen').forEach((s) => { if (s !== cur) s.classList.remove('active', 'leaving'); });
     if (cur) { cur.classList.add('leaving'); cur.classList.remove('active'); }
     next.classList.add('active');
     updateHomebar();
     await sleep(1100);
     cur && cur.classList.remove('leaving');
+    ensureVisible(next);
   }
 }
 const activeId = () => ($('.screen.active') || {}).id;
@@ -590,6 +629,7 @@ function renderEntry(e, prev) {
   if (avaSrc) {
     const im = new Image();
     im.alt = ch.name;
+    im.draggable = false;
     im.onerror = () => { im.remove(); ava.textContent = ch.avatar; };
     im.src = avaSrc;
     ava.appendChild(im);
@@ -759,58 +799,81 @@ async function timeSlip(swap) {
   g.className = 'glitch';
 }
 
+// [수정] 영상: 소리 차단 시 음소거 재시도, 10초 내 재생 시작 안 되면 건너뜀
 function playVideo(src) {
   return new Promise((res) => {
     const media = $('#postMedia');
-    media.innerHTML = '';
     const skip = $('#instaSkip');
     const scr = $('#insta');
+    media.innerHTML = '';
     let done = false;
-    let fallbackT;
+    let watchdog;
+    const v = document.createElement('video');
     const fin = () => {
       if (done) return; done = true;
       scr.onclick = null;
-      clearTimeout(fallbackT);
+      clearTimeout(watchdog);
       try { v.pause(); } catch { /* noop */ }
       skip.hidden = true;
       res();
     };
-    const v = document.createElement('video');
     v.playsInline = true;
     v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.controls = false;
     v.preload = 'auto';
     v.volume = settings.bgm;
     v.onended = fin;
     v.onerror = () => {
-      media.innerHTML = '<div class="ph"><span>🎬</span>영상 준비 중</div>';
-      fallbackT = setTimeout(fin, 4000);
+      const code = v.error ? v.error.code : '?';
+      console.error('영상 로드 실패 (code ' + code + ') ' + src);
+      media.innerHTML = '<div class="ph"><span>🎬</span>영상을 불러올 수 없어요</div>';
+      setTimeout(fin, 3000);
     };
     media.appendChild(v);
     skip.hidden = false;
-    skip.onclick = fin;
+    skip.onclick = (e) => { e.stopPropagation(); fin(); };
     scr.onclick = fin; // 영상 화면 아무 데나 탭하면 바로 넘어감
-    try {
-      v.src = src;
-      const p = v.play();
-      if (p && p.catch) p.catch(() => { v.muted = true; safePlay(v); });
-    } catch { v.onerror(); }
+
+    watchdog = setTimeout(() => {
+      if (v.currentTime === 0) { toast('영상이 재생되지 않아 넘어갑니다'); fin(); }
+    }, 10000);
+    v.addEventListener('playing', () => clearTimeout(watchdog), { once: true });
+
+    v.src = src;
+    v.load();
+    const p = v.play();
+    if (p && p.catch) {
+      p.catch(() => {
+        v.muted = true;
+        const p2 = v.play();
+        if (p2 && p2.catch) p2.catch(() => {});
+      });
+    }
   });
 }
+// [수정] 인스타 화면: 요소 null 방어 + 화면 보정
 async function showInsta(step) {
-  // 인스타 프로필 사진 (파일이 없으면 이모지 유지)
   const pa = $('#postAva');
-  pa.textContent = '🌽';
-  const pim = new Image();
-  pim.alt = '';
-  pim.onload = () => { pa.textContent = ''; pa.appendChild(pim); };
-  pim.src = scenario.assets.instaProfile;
-
-  $('#postCap').textContent = step.caption || '';
+  const cap = $('#postCap');
   const media = $('#postMedia');
-  media.innerHTML = '';
-  if (!step.video) media.appendChild(safeImg(step.src, '피드 사진', '피드 사진'));
+
+  if (pa) {
+    pa.textContent = '🌽';
+    const pim = new Image();
+    pim.alt = '';
+    pim.onload = () => { pa.textContent = ''; pa.appendChild(pim); };
+    pim.src = scenario.assets.instaProfile;
+  }
+  if (cap) cap.textContent = step.caption || '';
+  if (media) {
+    media.innerHTML = '';
+    if (!step.video) media.appendChild(safeImg(step.src, '피드 사진', '피드 사진'));
+  }
+
   await tapNext();
   await goScreen('insta');
+
   if (step.video) {
     sound.pause();
     await playVideo(step.video);
@@ -1058,7 +1121,10 @@ async function runGame(from) {
     save();
     await runEnding(g);
   } catch (e) {
-    if (e !== ABORT) console.error(e);
+    if (e !== ABORT) {
+      console.error(e);
+      toast('오류: ' + (e && e.message ? e.message : e)); // [수정] 에러를 화면에도 표시
+    }
   }
 }
 

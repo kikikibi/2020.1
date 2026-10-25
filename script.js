@@ -19,7 +19,7 @@ const scenario = {
 
   characters: {
     me:    { name: '계현' },
-    kang:  { name: '강냉이', full: '유강민', avatar: '🌽', color: '#FFE7A3', img: 'assets/kang_profile.jpg' },
+    kang:  { name: '강냉이', full: '유강민', avatar: '🌽', color: '#FFE7A3', img: 'assets/kang_profile.jpg', img26: 'assets/insta_profile.jpg' },
     honey: { name: '허니형', full: '동헌',   avatar: '🍯', color: '#FFD6A5', img: 'assets/honey_profile.jpg' },
     yong:  { name: '용승이', full: '용승',   avatar: '🐉', color: '#C8F0D8', img: 'assets/yong_profile.jpg' },
   },
@@ -585,11 +585,13 @@ function renderEntry(e, prev) {
   const ava = document.createElement('span');
   ava.className = 'ava';
   ava.style.background = ch.color;
-  if (ch.img) {
+  // 2026년(현실 복귀 후)에는 img26(인스타 프로필과 동일한 사진) 사용
+  const avaSrc = (state.year !== scenario.startYear && ch.img26) || ch.img;
+  if (avaSrc) {
     const im = new Image();
     im.alt = ch.name;
     im.onerror = () => { im.remove(); ava.textContent = ch.avatar; };
-    im.src = ch.img;
+    im.src = avaSrc;
     ava.appendChild(im);
   } else ava.textContent = ch.avatar;
   const col = document.createElement('div');

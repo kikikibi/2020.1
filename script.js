@@ -19,9 +19,9 @@ const scenario = {
 
   characters: {
     me:    { name: '계현' },
-    kang:  { name: '강냉이', full: '유강민', avatar: '🌽', color: '#FFE7A3' },
-    honey: { name: '허니형', full: '동헌',   avatar: '🍯', color: '#FFD6A5' },
-    yong:  { name: '용승이', full: '용승',   avatar: '🐉', color: '#C8F0D8' },
+    kang:  { name: '강냉이', full: '유강민', avatar: '🌽', color: '#FFE7A3', img: 'assets/kang_profile.jpg' },
+    honey: { name: '허니형', full: '동헌',   avatar: '🍯', color: '#FFD6A5', img: 'assets/honey_profile.jpg' },
+    yong:  { name: '용승이', full: '용승',   avatar: '🐉', color: '#C8F0D8', img: 'assets/yong_profile.jpg' },
   },
 
   rooms: {
@@ -38,6 +38,7 @@ const scenario = {
     songPhoto: 'assets/song_photo.jpg',
     album: 'assets/album.jpg',
     insta: 'assets/insta.jpg',
+    instaProfile: 'assets/insta_profile.jpg',
     hiddenVideo: 'assets/hidden1.mp4',
   },
 
@@ -583,7 +584,13 @@ function renderEntry(e, prev) {
   const ava = document.createElement('span');
   ava.className = 'ava';
   ava.style.background = ch.color;
-  ava.textContent = ch.avatar;
+  if (ch.img) {
+    const im = new Image();
+    im.alt = ch.name;
+    im.onerror = () => { im.remove(); ava.textContent = ch.avatar; };
+    im.src = ch.img;
+    ava.appendChild(im);
+  } else ava.textContent = ch.avatar;
   const col = document.createElement('div');
   col.className = 'col';
   if (!cont) {
@@ -784,6 +791,14 @@ function playVideo(src) {
   });
 }
 async function showInsta(step) {
+  // 인스타 프로필 사진 (파일이 없으면 이모지 유지)
+  const pa = $('#postAva');
+  pa.textContent = '🌽';
+  const pim = new Image();
+  pim.alt = '';
+  pim.onload = () => { pa.textContent = ''; pa.appendChild(pim); };
+  pim.src = scenario.assets.instaProfile;
+
   $('#postCap').textContent = step.caption || '';
   const media = $('#postMedia');
   media.innerHTML = '';

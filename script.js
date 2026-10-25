@@ -297,6 +297,7 @@ const scenario = {
     h2: {
       label: '히든 엔딩 2', title: '헤어지자고? 나 지금 치즈볼 백만개 튀기고 있는데...?',
       year: 2020, date: '6월 20일', time: '3:15', room: 'kang',
+      bgm: 'assets/ending_bgm_h2.mp3', // 히든 엔딩 2 전용 BGM (다른 엔딩은 기본 ending_bgm 사용)
       steps: [
         think('(잠시만)', '(아직 현실로 돌아온 게 아니라)', '(2020년인데...?)'),
         kang('형 저희 헤어져요.', '그리고', '치즈볼 백만개가 있어야', '미래로 돌아갈 수 있어요'),
@@ -761,10 +762,12 @@ function playVideo(src) {
     const media = $('#postMedia');
     media.innerHTML = '';
     const skip = $('#instaSkip');
+    const scr = $('#insta');
     let done = false;
     let fallbackT;
     const fin = () => {
       if (done) return; done = true;
+      scr.onclick = null;
       clearTimeout(fallbackT);
       try { v.pause(); } catch { /* noop */ }
       skip.hidden = true;
@@ -783,6 +786,7 @@ function playVideo(src) {
     media.appendChild(v);
     skip.hidden = false;
     skip.onclick = fin;
+    scr.onclick = fin; // 영상 화면 아무 데나 탭하면 바로 넘어감
     try {
       v.src = src;
       const p = v.play();
@@ -872,11 +876,11 @@ function stopMusic() {
 function playSong() {
   if (music.playing || !songOpen) return;
   music.playing = true;
-  const g = GEN;
+  music.gen = GEN;
   $('#music').classList.add('playing');
   $('#playBtn').textContent = '❚❚';
   $('#playBtn').disabled = true;
-  $('#musicNote').textContent = '♪ 재생 중...';
+  $('#musicNote').textContent = '♪ 재생 중... (화면을 탭하면 넘어가요)';
   sound.pause();
   try {
     music.audio = new Audio(scenario.assets.song);
@@ -893,15 +897,23 @@ function playSong() {
     if (k < 1 && music.playing) music.raf = requestAnimationFrame(tick);
   };
   tick();
-  music.timer = setTimeout(async () => {
-    stopMusic();
-    if (g !== GEN) return;
-    state.playedSong = true;
-    await goScreen('messenger');
-    resetMusicUI();
-    sound.resume();
-    if (songDone) songDone(true);
-  }, dur);
+  music.timer = setTimeout(finishSong, dur);
+}
+
+// 25초가 끝나거나, 재생 중 화면을 탭하면 바로 메신저로 넘어간다
+let songFinishing = false;
+async function finishSong() {
+  if (songFinishing || !music.playing) return;
+  songFinishing = true;
+  const g = music.gen;
+  stopMusic();
+  if (g !== GEN) { songFinishing = false; return; }
+  state.playedSong = true;
+  await goScreen('messenger');
+  resetMusicUI();
+  sound.resume();
+  songFinishing = false;
+  if (songDone) songDone(true);
 }
 
 homebar.addEventListener('click', () => {
@@ -910,7 +922,7 @@ homebar.addEventListener('click', () => {
     if (songOpen) goScreen('home');
     else { homebar.classList.remove('nudge'); void homebar.offsetWidth; homebar.classList.add('nudge'); }
   } else if (id === 'home') goScreen('messenger');
-  else if (id === 'music' && !music.playing) goScreen('home');
+  else if (id === 'music') { if (music.playing) finishSong(); else goScreen('home'); }
 });
 document.querySelectorAll('.app').forEach((a) => {
   a.addEventListener('click', () => {
@@ -921,7 +933,8 @@ document.querySelectorAll('.app').forEach((a) => {
   });
 });
 $('#musicBack').addEventListener('click', () => { if (!music.playing) goScreen('home'); });
-$('#playBtn').addEventListener('click', playSong);
+$('#playBtn').addEventListener('click', (e) => { e.stopPropagation(); playSong(); });
+$('#music').addEventListener('click', () => { if (music.playing) finishSong(); });
 $('#musicDur').textContent = fmt(scenario.song.seconds);
 
 /* =========================================================
@@ -1064,7 +1077,7 @@ async function runEnding(g) {
     addDivider();
   });
   if (g !== GEN) throw ABORT;
-  sound.play(scenario.assets.endingBgm);
+  sound.play(E.bgm || scenario.assets.endingBgm);
   await runSteps(scenario.epilogue, g);
   await runSteps(E.steps, g);
   await tapNext();
@@ -1104,7 +1117,7 @@ function showReveal() {
     const li = document.createElement('li');
     li.className = 'flag';
     li.innerHTML = '<span class="h-date">6월 10일 · 히든 플래그</span><p class="h-q">강민이가 보낸 노래</p>' +
-      `<p class="h-a">→ ${esc(scenario.song.title)} - ${esc(scenario.song.artist)} 를 끝까지 들었다</p><span class="h-d">🍊</span>`;
+      `<p class="h-a">→ ${esc(scenario.song.title)} - ${esc(scenario.song.artist)} 를 들었다</p><span class="h-d">🍊</span>`;
     list.appendChild(li);
   }
   goScreen('reveal', 'black').then(() => {
@@ -1136,6 +1149,7 @@ function cleanup() {
   resetMusicUI();
   const v = $('#postMedia video'); if (v) { try { v.pause(); } catch { /* noop */ } }
   $('#instaSkip').hidden = true;
+  $('#insta').onclick = null;
   $('#blackText').classList.remove('show');
   $('#glitch').className = 'glitch';
   $('#system').onclick = null;

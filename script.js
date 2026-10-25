@@ -1337,6 +1337,48 @@ async function continueGame() {
   runGame(state.eventIndex);
 }
 
+// 엔딩 도감에서 달성한 엔딩 다시 보기 (저장 데이터 · 도감 기록은 건드리지 않음)
+async function replayEnding(id) {
+  const E = scenario.endings[id];
+  if (!E) return;
+  const g = ++GEN;
+  cleanup();
+  sound.stop();
+  state = freshState();
+  state.date = '6월 20일';
+  state.time = '3:12';
+  renderLog();
+  updateHeader();
+  try {
+    await goScreen('messenger', 'black', 1200);
+    if (g !== GEN) return;
+    await timeSlip(() => {
+      if (g !== GEN) return;
+      state.year = E.year;
+      state.room = E.room;
+      state.roomName = E.roomName || scenario.rooms[E.room].name;
+      state.date = E.date;
+      state.time = E.time || state.time;
+      renderLog();
+      updateHeader();
+      addDivider();
+    });
+    if (g !== GEN) return;
+    sound.play(E.bgm || scenario.assets.endingBgm);
+    await runSteps(scenario.epilogue, g);
+    await runSteps(E.steps, g);
+    await tapNext();
+    clearThought();
+    if (g !== GEN) return;
+    await toTitle();
+  } catch (e) {
+    if (e !== ABORT) {
+      console.error(e);
+      toast('오류: ' + (e && e.message ? e.message : e));
+    }
+  }
+}
+
 function openGallery() {
   const got = store.get(KEYS.endings, []);
   const wrap = document.createElement('div');
@@ -1351,9 +1393,23 @@ function openGallery() {
     const c = document.createElement('div');
     c.className = 'g-card' + (open ? ' open' : '');
     c.innerHTML = `${CB}<span>${esc(E.label)}</span><b>${open ? esc(E.title) : '???'}</b>`;
+    if (open) {
+      c.style.cursor = 'pointer';
+      c.setAttribute('role', 'button');
+      c.tabIndex = 0;
+      c.title = '눌러서 다시 보기';
+      const go = () => { closeModal(); replayEnding(id); };
+      c.onclick = go;
+      c.onkeydown = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); go(); } };
+    }
     grid.appendChild(c);
   });
-  wrap.append(count, grid);
+  const hint = document.createElement('p');
+  hint.className = 'g-count';
+  hint.style.fontSize = '12px';
+  hint.style.opacity = '.75';
+  hint.textContent = got.length ? '달성한 엔딩을 누르면 다시 볼 수 있어요' : '';
+  wrap.append(count, hint, grid);
   openModal('엔딩 도감', wrap);
 }
 

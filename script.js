@@ -270,7 +270,7 @@ const scenario = {
       year: 2026, date: '6월 20일', time: '14:48', room: 'kang26',
       steps: [
         { type: 'black', text: '아.. 나 강민이랑 사귀었다가 헤어졌구나...', ms: 3000 },
-        { type: 'insta', src: 'assets/insta.jpg', caption: '미안 계현이형.. 그치만 너무너무 귀여운걸 🧀', ms: 3000 },
+        { type: 'insta', src: 'assets/insta.jpg', user: 'youkangmln', song: 'Petit Biscuit - Sunset Lover', caption: '미안\n계현이형..\n너무너무 귀여운걸', ms: 3000 },
         think('(저건 언제 찍어갔대)', '(잠든 지도 몰랐네)', '(근데 아무리 강민이라도 전남친한테 저런 말을 하는 건가..?)'),
         kang('형', '인스타봄?'),
         me('봤지'),
@@ -799,41 +799,46 @@ async function timeSlip(swap) {
   g.className = 'glitch';
 }
 
-// [수정] 영상: 소리 차단 시 음소거 재시도, 10초 내 재생 시작 안 되면 건너뜀
-function playVideo(src) {
+// [수정] 히든엔딩 영상: 인스타 화면 없이 영상만 전체 화면으로 재생 (탭하면 건너뜀)
+let fullVideoFin = null;
+function playVideoFull(src) {
   return new Promise((res) => {
-    const media = $('#postMedia');
-    const skip = $('#instaSkip');
-    const scr = $('#insta');
-    media.innerHTML = '';
+    const phone = $('#phone') || document.body;
+    const wrap = document.createElement('div');
+    wrap.id = 'fullVideo';
+    Object.assign(wrap.style, {
+      position: 'absolute', inset: '0', zIndex: '60', background: '#000',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      opacity: '0', transition: 'opacity .6s',
+    });
+    const v = document.createElement('video');
     let done = false;
     let watchdog;
-    const v = document.createElement('video');
     const fin = () => {
       if (done) return; done = true;
-      scr.onclick = null;
+      fullVideoFin = null;
       clearTimeout(watchdog);
       try { v.pause(); } catch { /* noop */ }
-      skip.hidden = true;
-      res();
+      wrap.style.opacity = '0';
+      setTimeout(() => { wrap.remove(); res(); }, 600);
     };
+    fullVideoFin = fin;
     v.playsInline = true;
     v.setAttribute('playsinline', '');
     v.setAttribute('webkit-playsinline', '');
     v.controls = false;
     v.preload = 'auto';
-    v.volume = settings.bgm;
+    Object.assign(v.style, { width: '100%', height: '100%', objectFit: 'contain', display: 'block', background: '#000' });
     v.onended = fin;
     v.onerror = () => {
       const code = v.error ? v.error.code : '?';
       console.error('영상 로드 실패 (code ' + code + ') ' + src);
-      media.innerHTML = '<div class="ph"><span>🎬</span>영상을 불러올 수 없어요</div>';
-      setTimeout(fin, 3000);
+      setTimeout(fin, 1500);
     };
-    media.appendChild(v);
-    skip.hidden = false;
-    skip.onclick = (e) => { e.stopPropagation(); fin(); };
-    scr.onclick = fin; // 영상 화면 아무 데나 탭하면 바로 넘어감
+    wrap.onclick = fin;
+    wrap.appendChild(v);
+    phone.appendChild(wrap);
+    requestAnimationFrame(() => { wrap.style.opacity = '1'; });
 
     watchdog = setTimeout(() => {
       if (v.currentTime === 0) { toast('영상이 재생되지 않아 넘어갑니다'); fin(); }
@@ -852,12 +857,25 @@ function playVideo(src) {
     }
   });
 }
-// [수정] 인스타 화면: 요소 null 방어 + 화면 보정
+
+// 인스타 화면 (엔딩 4 전용) / 영상은 위 함수로 바로 재생
 async function showInsta(step) {
+  if (step.video) {
+    await tapNext();
+    sound.pause();
+    await playVideoFull(step.video);
+    sound.resume();
+    return;
+  }
+
   const pa = $('#postAva');
   const cap = $('#postCap');
   const media = $('#postMedia');
 
+  // 아이디 (게시물 상단 + 캡션)
+  document.querySelectorAll('.post-user b, .post-cap b').forEach((n) => { n.textContent = step.user || 'kangnaengi_0125'; });
+
+  // 프로필 사진
   if (pa) {
     pa.textContent = '🌽';
     const pim = new Image();
@@ -865,22 +883,29 @@ async function showInsta(step) {
     pim.onload = () => { pa.textContent = ''; pa.appendChild(pim); };
     pim.src = scenario.assets.instaProfile;
   }
-  if (cap) cap.textContent = step.caption || '';
+
+  // 게시물 노래
+  let songEl = $('#postSong');
+  if (!songEl) {
+    songEl = document.createElement('div');
+    songEl.id = 'postSong';
+    Object.assign(songEl.style, { fontSize: '12px', color: '#8e8e8e', padding: '2px 14px 8px' });
+    const pu = $('.post-user');
+    if (pu) pu.insertAdjacentElement('afterend', songEl);
+  }
+  songEl.textContent = step.song ? '♫ ' + step.song : '';
+  songEl.style.display = step.song ? 'block' : 'none';
+
+  // 코멘트 (줄바꿈 유지)
+  if (cap) { cap.style.whiteSpace = 'pre-line'; cap.textContent = step.caption || ''; }
   if (media) {
     media.innerHTML = '';
-    if (!step.video) media.appendChild(safeImg(step.src, '피드 사진', '피드 사진'));
+    media.appendChild(safeImg(step.src, '피드 사진', '피드 사진'));
   }
 
   await tapNext();
   await goScreen('insta');
-
-  if (step.video) {
-    sound.pause();
-    await playVideo(step.video);
-    sound.resume();
-  } else {
-    await sleep(step.ms || 3000);
-  }
+  await sleep(step.ms || 3000);
   await goScreen('messenger');
 }
 
@@ -1188,6 +1213,16 @@ function showReveal() {
       `<p class="h-a">→ ${esc(scenario.song.title)} - ${esc(scenario.song.artist)} 를 들었다</p><span class="h-d">🍊</span>`;
     list.appendChild(li);
   }
+  // 마지막 칸: 모든 엔딩 공통 (히든 엔딩 2만 -100)
+  const finLi = document.createElement('li');
+  finLi.className = 'final';
+  finLi.style.animationDelay = ((state.history.length + 1) * 0.06) + 's';
+  const isH2 = state.endingId === 'h2';
+  finLi.innerHTML =
+    '<span class="h-date">6월 20일</span>' +
+    `<p class="h-q">${isH2 ? '괘씸한 계현이형' : '강민이 계현을 좋아하는 마음'}</p>` +
+    `<span class="h-d">${isH2 ? '-100' : '+100'} ${CB}</span>`;
+  list.appendChild(finLi);
   goScreen('reveal', 'black').then(() => {
     const el = $('#ratio'); const t0 = performance.now();
     const tick = () => {
@@ -1216,6 +1251,8 @@ function cleanup() {
   stopMusic();
   resetMusicUI();
   const v = $('#postMedia video'); if (v) { try { v.pause(); } catch { /* noop */ } }
+  if (fullVideoFin) fullVideoFin();
+  { const fv = $('#fullVideo'); if (fv) fv.remove(); }
   $('#instaSkip').hidden = true;
   $('#insta').onclick = null;
   $('#blackText').classList.remove('show');

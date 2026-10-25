@@ -270,7 +270,7 @@ const scenario = {
       year: 2026, date: '6월 20일', time: '14:48', room: 'kang26',
       steps: [
         { type: 'black', text: '아.. 나 강민이랑 사귀었다가 헤어졌구나...', ms: 3000 },
-        { type: 'insta', src: 'assets/insta.jpg', user: 'youkangmln', song: 'Petit Biscuit - Sunset Lover', caption: '미안\n계현이형..\n너무너무 귀여운걸', ms: 3000 },
+        { type: 'insta', src: 'assets/insta.jpg', user: 'youkangmln', song: 'Petit Biscuit - Sunset Lover', caption: '미안\n계현이형..\n너무너무 귀여운걸', ms: 5000 },
         think('(저건 언제 찍어갔대)', '(잠든 지도 몰랐네)', '(근데 아무리 강민이라도 전남친한테 저런 말을 하는 건가..?)'),
         kang('형', '인스타봄?'),
         me('봤지'),
@@ -858,7 +858,36 @@ function playVideoFull(src) {
   });
 }
 
-// 인스타 화면 (엔딩 4 전용) / 영상은 위 함수로 바로 재생
+// 인스타 화면 (엔딩 4 전용): HTML/CSS에 의존하지 않고 JS로 직접 그립니다
+const igIcon = (path, size = 24) =>
+  `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+const IG = {
+  heart: '<path d="M12 21s-7-4.4-9-9.2C1.5 8 3.8 4.5 7.3 4.5c1.9 0 3.5 1 4.7 2.8 1.2-1.8 2.8-2.8 4.7-2.8 3.5 0 5.8 3.5 4.3 7.3C19 16.6 12 21 12 21z"/>',
+  comment: '<path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.8-5.3A8.5 8.5 0 1 1 21 11.5z"/>',
+  plane: '<path d="M22 3 9.5 13.5M22 3l-7 18-5.5-7.5L2 9.5 22 3z"/>',
+  bookmark: '<path d="M6 3h12v18l-6-4.5L6 21V3z"/>',
+  home: '<path d="M3 11 12 3l9 8v10h-6v-6H9v6H3V11z"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/>',
+  plus: '<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/>',
+  reels: '<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M3 9h18M9 3l3 6M15 3l3 6"/><path d="M10 12.5l4 2.5-4 2.5z"/>',
+};
+function igAvatar(px) {
+  const a = document.createElement('span');
+  Object.assign(a.style, {
+    width: px + 'px', height: px + 'px', borderRadius: '50%', overflow: 'hidden', flex: '0 0 auto',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    background: '#FFE7A3', fontSize: Math.round(px * 0.55) + 'px',
+  });
+  a.textContent = '🌽';
+  const im = new Image();
+  im.alt = '';
+  im.draggable = false;
+  Object.assign(im.style, { width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' });
+  im.onload = () => { a.textContent = ''; a.appendChild(im); };
+  im.src = scenario.assets.instaProfile; // assets/insta_profile.jpg
+  return a;
+}
+
 async function showInsta(step) {
   if (step.video) {
     await tapNext();
@@ -868,45 +897,100 @@ async function showInsta(step) {
     return;
   }
 
-  const pa = $('#postAva');
-  const cap = $('#postCap');
-  const media = $('#postMedia');
-
-  // 아이디 (게시물 상단 + 캡션)
-  document.querySelectorAll('.post-user b, .post-cap b').forEach((n) => { n.textContent = step.user || 'kangnaengi_0125'; });
-
-  // 프로필 사진
-  if (pa) {
-    pa.textContent = '🌽';
-    const pim = new Image();
-    pim.alt = '';
-    pim.onload = () => { pa.textContent = ''; pa.appendChild(pim); };
-    pim.src = scenario.assets.instaProfile;
+  if (!document.getElementById('igFont')) {
+    const l = document.createElement('link');
+    l.id = 'igFont'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Grand+Hotel&display=swap';
+    document.head.appendChild(l);
   }
 
-  // 게시물 노래
-  let songEl = $('#postSong');
-  if (!songEl) {
-    songEl = document.createElement('div');
-    songEl.id = 'postSong';
-    Object.assign(songEl.style, { fontSize: '12px', color: '#8e8e8e', padding: '2px 14px 8px' });
-    const pu = $('.post-user');
-    if (pu) pu.insertAdjacentElement('afterend', songEl);
-  }
-  songEl.textContent = step.song ? '♫ ' + step.song : '';
-  songEl.style.display = step.song ? 'block' : 'none';
+  const user = step.user || 'kangnaengi_0125';
+  const phone = $('#phone') || document.body;
+  const wrap = document.createElement('div');
+  wrap.id = 'igOverlay';
+  Object.assign(wrap.style, {
+    position: 'absolute', inset: '0', zIndex: '60', background: '#fff', color: '#262626',
+    display: 'flex', flexDirection: 'column', opacity: '0', transition: 'opacity .5s',
+    fontFamily: "-apple-system,'Noto Sans KR','Segoe UI',sans-serif",
+  });
+  wrap.innerHTML =
+    `<div style="padding:calc(env(safe-area-inset-top,0px) + 8px) 18px 0;font-size:13px;font-weight:700">${esc(state.time)}</div>` +
+    `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 14px 6px;border-bottom:1px solid #efefef">` +
+      `<span style="font-family:'Grand Hotel','Snell Roundhand','Brush Script MT','Segoe Script',cursive;font-size:30px;line-height:1.15">Instagram</span>` +
+      `<span style="display:flex;gap:18px">${igIcon(IG.heart)}${igIcon(IG.plane)}</span>` +
+    `</div>` +
+    `<div id="igScroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y"></div>` +
+    `<div id="igNav" style="display:flex;justify-content:space-around;align-items:center;padding:8px 0 calc(env(safe-area-inset-bottom,0px) + 8px);border-top:1px solid #efefef;background:#fff">` +
+      `${igIcon(IG.home)}${igIcon(IG.search)}${igIcon(IG.plus)}${igIcon(IG.reels)}<span id="igNavAva"></span>` +
+    `</div>`;
 
-  // 코멘트 (줄바꿈 유지)
-  if (cap) { cap.style.whiteSpace = 'pre-line'; cap.textContent = step.caption || ''; }
-  if (media) {
-    media.innerHTML = '';
-    media.appendChild(safeImg(step.src, '피드 사진', '피드 사진'));
+  const scroll = wrap.querySelector('#igScroll');
+  wrap.querySelector('#igNavAva').appendChild(igAvatar(24));
+
+  // 게시물 헤더 (프사 + 아이디 + 노래)
+  const head = document.createElement('div');
+  Object.assign(head.style, { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px' });
+  const ring = document.createElement('span');
+  Object.assign(ring.style, {
+    padding: '2px', borderRadius: '50%', flex: '0 0 auto', display: 'inline-flex',
+    background: 'linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)',
+  });
+  const ringIn = document.createElement('span');
+  Object.assign(ringIn.style, { padding: '2px', borderRadius: '50%', background: '#fff', display: 'inline-flex' });
+  ringIn.appendChild(igAvatar(30));
+  ring.appendChild(ringIn);
+  const who = document.createElement('div');
+  Object.assign(who.style, { display: 'flex', flexDirection: 'column', minWidth: '0', flex: '1' });
+  const nameEl = document.createElement('b');
+  nameEl.style.fontSize = '14px';
+  nameEl.textContent = user;
+  who.appendChild(nameEl);
+  if (step.song) {
+    const sg = document.createElement('span');
+    Object.assign(sg.style, { fontSize: '12px', color: '#737373', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' });
+    sg.textContent = '♫ ' + step.song;
+    who.appendChild(sg);
   }
+  const more = document.createElement('b');
+  more.textContent = '···';
+  more.style.fontSize = '18px';
+  head.append(ring, who, more);
+
+  // 사진
+  const mediaBox = document.createElement('div');
+  Object.assign(mediaBox.style, { width: '100%', aspectRatio: '1 / 1', background: '#efefef', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' });
+  const img = safeImg(step.src, '피드 사진', '피드 사진');
+  Object.assign(img.style, { width: '100%', height: '100%', objectFit: 'cover', display: 'block' });
+  mediaBox.appendChild(img);
+
+  // 아이콘 줄 / 좋아요 / 코멘트 / 날짜
+  const actions = document.createElement('div');
+  Object.assign(actions.style, { display: 'flex', alignItems: 'center', gap: '16px', padding: '10px 12px 6px' });
+  actions.innerHTML = `${igIcon(IG.heart)}${igIcon(IG.comment)}${igIcon(IG.plane)}<span style="margin-left:auto;display:inline-flex">${igIcon(IG.bookmark)}</span>`;
+  const likes = document.createElement('div');
+  Object.assign(likes.style, { padding: '0 12px', fontSize: '14px', fontWeight: '700' });
+  likes.textContent = '좋아요 1,025개';
+  const cap = document.createElement('div');
+  Object.assign(cap.style, { padding: '4px 12px 0', fontSize: '14px', lineHeight: '1.5' });
+  const capName = document.createElement('b');
+  capName.textContent = user + ' ';
+  const capText = document.createElement('span');
+  capText.style.whiteSpace = 'pre-line';
+  capText.textContent = step.caption || '';
+  cap.append(capName, capText);
+  const date = document.createElement('div');
+  Object.assign(date.style, { padding: '6px 12px 24px', fontSize: '11px', color: '#8e8e8e' });
+  date.textContent = `${state.year}년 ${state.date}`;
+
+  scroll.append(head, mediaBox, actions, likes, cap, date);
 
   await tapNext();
-  await goScreen('insta');
-  await sleep(step.ms || 3000);
-  await goScreen('messenger');
+  phone.appendChild(wrap);
+  requestAnimationFrame(() => { wrap.style.opacity = '1'; });
+  await sleep(500 + (step.ms || 5000));
+  wrap.style.opacity = '0';
+  await sleep(500);
+  wrap.remove();
 }
 
 /* ---------- 홈 화면 · 음악 앱 (6월 10일) ---------- */
@@ -1253,6 +1337,7 @@ function cleanup() {
   const v = $('#postMedia video'); if (v) { try { v.pause(); } catch { /* noop */ } }
   if (fullVideoFin) fullVideoFin();
   { const fv = $('#fullVideo'); if (fv) fv.remove(); }
+  { const ig = $('#igOverlay'); if (ig) ig.remove(); }
   $('#instaSkip').hidden = true;
   $('#insta').onclick = null;
   $('#blackText').classList.remove('show');

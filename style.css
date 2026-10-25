@@ -171,7 +171,7 @@ p { margin: 0; }
 .title-text {
   position: absolute; left: 22px; right: 22px;
   top: auto;
-  bottom: calc(13% + 276px + 24px); /* 메뉴 높이 + 간격 */
+  bottom: calc(13% + 244px + 24px); /* 메뉴 높이 + 간격 */
   z-index: 3; text-align: left;
 }
 #title h1 {
@@ -186,9 +186,9 @@ p { margin: 0; }
   text-shadow: .035em .035em 0 #7FDDF5, .07em .09em 0 rgba(238, 106, 148, .22);
   animation: pop .6s steps(5) both;
 }
-#title .t1 { font-size: min(8.4cqw, 3.4cqh); color: #C9819A; animation-delay: .1s; }
-#title .t2 { font-size: min(16cqw, 6.2cqh); animation-delay: .3s; transform: none; }
-#title .t3 { font-size: min(16cqw, 6.2cqh); animation-delay: .5s; transform: none; padding-left: 7cqw; color: #F0509A; }
+#title .t1 { font-size: min(9.4cqw, 4cqh); color: #C9819A; animation-delay: .1s; }
+#title .t2 { font-size: min(19cqw, 7.2cqh); animation-delay: .3s; transform: none; }
+#title .t3 { font-size: min(19cqw, 7.2cqh); animation-delay: .5s; transform: none; padding-left: 7cqw; color: #F0509A; }
 @keyframes pixBob { 50% { transform: translateY(-3px); } }
 
 /* 픽셀 하트 (7x6 도트) */
@@ -244,8 +244,8 @@ p { margin: 0; }
   position: absolute;
   left: 22px; bottom: 13%;
   z-index: 4;
-  display: flex; flex-direction: column; gap: 14px;
-  width: 64%;
+  display: flex; flex-direction: column; gap: 12px;
+  width: 60%;
 }
 .menu-btn {
   display: flex; align-items: center; gap: 10px;
@@ -260,7 +260,7 @@ p { margin: 0; }
   box-shadow: 0 4px 0 #FFC9D9, 0 10px 24px rgba(238, 106, 148, .16);
   transition: transform .28s cubic-bezier(.34, 1.56, .64, 1), background .25s, color .25s, box-shadow .25s;
 }
-.menu .menu-btn { min-height: 58px; padding: 14px 22px; font-size: 23px; animation: slideIn .6s cubic-bezier(.34, 1.56, .64, 1) both; }
+.menu .menu-btn { min-height: 52px; padding: 12px 20px; font-family: var(--pixel); font-weight: 700; font-size: 20px; animation: slideIn .6s cubic-bezier(.34, 1.56, .64, 1) both; }
 .menu .menu-btn:nth-child(1) { animation-delay: .5s; }
 .menu .menu-btn:nth-child(2) { animation-delay: .6s; }
 .menu .menu-btn:nth-child(3) { animation-delay: .7s; }
@@ -287,8 +287,8 @@ p { margin: 0; }
 .title-foot {
   position: absolute; left: 0; right: 0; bottom: 4.5%;
   text-align: center;
-  font-family: var(--cute);
-  font-size: 16px;
+  font-family: var(--pixel);
+  font-size: 14px;
   color: var(--ink-soft);
   z-index: 4;
   transition: opacity .6s;

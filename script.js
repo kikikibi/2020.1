@@ -1464,6 +1464,332 @@ async function replayEnding(id) {
   }
 }
 
+/* =========================================================
+ *  SPECIAL ENDING — 엔딩 6개를 모두 모으면 도감 맨 아래에 버튼이 열립니다
+ *  대사 · 파일명 · 시간은 전부 SPECIAL 에서만 수정하세요.
+ *  mp3 파일이 없어도 자막만 자동 타이밍으로 진행됩니다.
+ * ========================================================= */
+const SPECIAL = {
+  title: '6년 전에 했어야 했던 말',
+  date: '6월 20일', time: '23:10',
+  ringDelayMs: 5000,                 // 문자 보낸 뒤 전화가 오기까지
+  ring: 'assets/call_ring.mp3',      // 벨소리 (반복 재생)
+  contact: '강냉이',
+  thoughts: ['(6년 전에 했어야 했던 말을)', '(이제라도 말해야돼)'],
+  texts: ['강민아', '시간 될 때', '전화해'],
+  // kang: 강민의 통화 음성 / pick: 계현의 선택지 (고르면 해당 음성 재생)
+  script: [
+    { kang: { audio: 'assets/call_kang_1.mp3', lines: ['여보세요', '안들려?', '야'] } },
+    { pick: [{ text: '여보세요', audio: 'assets/call_me_1.mp3', lines: ['여보세요'] }] },
+
+    { kang: { audio: 'assets/call_kang_2.mp3', lines: ['반말 안할게 미안해요'] } },
+    { pick: [
+      { text: '강민아 우리 사이... 이제 어떻게할래?', audio: 'assets/call_me_opt1.mp3', lines: ['강민아 우리 사이... 이제 어떻게할래?'] },
+      { text: '강민아 나 너랑 우리 관계에 대해.. 제대로 하고싶어.', audio: 'assets/call_me_opt2.mp3', lines: ['강민아 나 너랑 우리 관계에 대해..', '제대로 하고싶어.'] },
+    ] },
+
+    { kang: { audio: 'assets/call_kang_3.mp3', lines: ['뭘 어뜨케해여'] } },
+    { pick: [
+      { text: '(...)', audio: 'assets/call_me_opt3.mp3', lines: ['(...)'] },
+      { text: '나도 그걸 모르겠어', audio: 'assets/call_me_opt4.mp3', lines: ['나도 그걸 모르겠어'] },
+    ] },
+
+    { kang: { audio: 'assets/call_kang_4.mp3', lines: ['어뜨케할래', '계속 좋아하든지 잇든지 둘 중 하나야 결국엔.', '어뜨케하고싶어'] } },
+    { pick: [{ text: '좋아해', audio: 'assets/call_me_2.mp3', lines: ['좋아해.....'], after: { lines: ['나머지 이야기는 내일 보고 하자'] } }] }, // after: 음성 없이 자막만
+    { pick: [{ text: '오늘 이정도로 합의하자 우리', audio: 'assets/call_me_3.mp3', lines: ['오늘 이정도로 합의하자 우리'] }] },
+
+    { kang: { audio: 'assets/call_kang_5.mp3', lines: ['사랑하는 계현이형', '잘자요'] } },
+    { pick: [{ text: '잘자', audio: 'assets/call_me_4.mp3', lines: ['잘자'] }] },
+  ],
+};
+
+let callRing = null;
+
+function ensureCallStyle() {
+  if (document.getElementById('callStyle')) return;
+  const st = document.createElement('style');
+  st.id = 'callStyle';
+  st.textContent = `
+#callOverlay{position:absolute;inset:0;z-index:70;color:#fff;overflow:hidden;background:#111;opacity:0;transition:opacity .5s;
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Noto Sans KR','Segoe UI',sans-serif;
+  -webkit-user-select:none;user-select:none}
+#callOverlay.on{opacity:1}
+#callOverlay *{box-sizing:border-box}
+#callOverlay .cl-bg{position:absolute;inset:-60px;background-size:cover;background-position:center;filter:blur(38px) saturate(1.35) brightness(.6)}
+#callOverlay .cl-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.28),rgba(0,0,0,0) 38%,rgba(0,0,0,.4))}
+#callOverlay .cl-island{position:absolute;top:11px;left:50%;width:124px;height:36px;margin-left:-62px;border-radius:20px;background:#000;z-index:5}
+#callOverlay .cl-status{position:absolute;left:0;right:0;top:0;height:58px;padding:16px 30px 0 36px;display:flex;justify-content:space-between;align-items:flex-start;font-size:17px;font-weight:600;z-index:4}
+#callOverlay .cl-sicons{display:flex;gap:6px;align-items:center;padding-top:4px}
+#callOverlay .cl-screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:78px 24px calc(env(safe-area-inset-bottom,0px) + 28px)}
+#callOverlay .cl-screen[hidden]{display:none}
+#callOverlay .cl-head{text-align:center;margin-top:18px}
+#callOverlay .cl-name{font-size:38px;font-weight:600;letter-spacing:-.4px}
+#callOverlay .cl-label{font-size:20px;opacity:.75;margin-top:4px;font-variant-numeric:tabular-nums}
+#callOverlay .cl-spacer{flex:1}
+#callOverlay .cl-pills{display:flex;gap:12px;margin-bottom:34px}
+#callOverlay .cl-pill{display:inline-flex;align-items:center;gap:7px;padding:11px 18px;border-radius:999px;background:rgba(255,255,255,.2);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);font-size:15px;font-weight:500}
+#callOverlay .cl-btns{width:100%;display:flex;justify-content:space-between;padding:0 18px;margin-bottom:10px}
+#callOverlay .cl-bw{display:flex;flex-direction:column;align-items:center;gap:10px;font-size:15px}
+#callOverlay .cl-round{width:78px;height:78px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;padding:0}
+#callOverlay .cl-round.red{background:#ff3b30}
+#callOverlay .cl-round.green{background:#34c759}
+#callOverlay .cl-round.pulse{animation:clPulse 1.6s infinite}
+@keyframes clPulse{0%{box-shadow:0 0 0 0 rgba(52,199,89,.55)}70%{box-shadow:0 0 0 22px rgba(52,199,89,0)}100%{box-shadow:0 0 0 0 rgba(52,199,89,0)}}
+#callOverlay.shake .cl-in{animation:clShake .4s}
+@keyframes clShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+#callOverlay .cl-subs{flex:1;width:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 6px}
+#callOverlay .cl-line{font-size:22px;line-height:1.5;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,.5);animation:clIn .35s ease}
+#callOverlay .cl-line.me{color:#ffe08a}
+@keyframes clIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#callOverlay .cl-lower{position:relative;width:100%;min-height:232px;margin-bottom:22px}
+#callOverlay .cl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px 12px;justify-items:center;transition:opacity .3s}
+#callOverlay .cl-gb{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13px}
+#callOverlay .cl-gc{width:74px;height:74px;border-radius:50%;background:rgba(255,255,255,.2);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);display:flex;align-items:center;justify-content:center}
+#callOverlay .cl-picks{position:absolute;inset:0;display:none;flex-direction:column;justify-content:flex-end;gap:10px}
+#callOverlay.picking .cl-grid{opacity:0;pointer-events:none}
+#callOverlay.picking .cl-picks{display:flex}
+#callOverlay .cl-pick{width:100%;padding:16px 18px;border-radius:22px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.24);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px);color:#fff;font-size:17px;font-weight:500;text-align:left;cursor:pointer;font-family:inherit}
+#callOverlay .cl-pick:active{background:rgba(255,255,255,.4)}
+#callOverlay .cl-endwrap{display:flex;justify-content:center}
+#callOverlay .cl-cover{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:9}
+`;
+  document.head.appendChild(st);
+}
+
+// 아이폰 16 Pro · 최신 iOS 스타일 통화 화면 (다이나믹 아일랜드 / 유리 질감 버튼)
+function buildCallUI() {
+  ensureCallStyle();
+  const el = document.createElement('div');
+  el.id = 'callOverlay';
+  const ic = (p, size = 30) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+  const phoneSvg = (rot) => `<svg viewBox="0 0 24 24" width="34" height="34" style="transform:rotate(${rot}deg)"><path fill="#fff" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.6 21 3 13.4 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"/></svg>`;
+  const keypad = [6, 12, 18].map((x) => [4, 9, 14, 19].map((y) => `<circle cx="${x}" cy="${y}" r="1.5" fill="#fff" stroke="none"/>`).join('')).join('');
+  const grid = [
+    ['소리 끔', '<path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM6 11a6 6 0 0 0 12 0M12 17v4M4 4l16 16"/>'],
+    ['키패드', keypad],
+    ['스피커', '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>'],
+    ['통화 추가', '<path d="M12 5v14M5 12h14"/>'],
+    ['FaceTime', '<rect x="3" y="6" width="12" height="12" rx="3"/><path d="M15 10l6-3v10l-6-3z"/>'],
+    ['연락처', '<circle cx="12" cy="9" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>'],
+  ].map(([t, p]) => `<div class="cl-gb"><span class="cl-gc">${ic(p)}</span>${t}</div>`).join('');
+  const sicons =
+    '<svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="#fff"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="#fff"/><rect x="10" y="3" width="3" height="9" rx="1" fill="#fff"/><rect x="15" y="0" width="3" height="12" rx="1" fill="#fff"/></svg>' +
+    '<svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"><path d="M1.5 4.2a10 10 0 0 1 14 0"/><path d="M4 7a6.4 6.4 0 0 1 9 0"/><circle cx="8.5" cy="10" r="1.2" fill="#fff" stroke="none"/></svg>' +
+    '<svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="22" height="12" rx="3.8" fill="none" stroke="#fff" opacity=".45"/><rect x="2" y="2" width="19" height="9" rx="2.5" fill="#fff"/><path d="M24 4.5v4c.9-.3 1.6-1.1 1.6-2s-.7-1.7-1.6-2z" fill="#fff" opacity=".5"/></svg>';
+
+  el.innerHTML =
+    '<div class="cl-bg"></div><div class="cl-shade"></div>' +
+    '<div class="cl-island"></div>' +
+    `<div class="cl-status"><span>${esc(state.time)}</span><span class="cl-sicons">${sicons}</span></div>` +
+    // 수신 화면
+    '<div class="cl-screen cl-in">' +
+      `<div class="cl-head"><div class="cl-name">${esc(SPECIAL.contact)}</div><div class="cl-label">모바일</div></div>` +
+      '<div class="cl-spacer"></div>' +
+      `<div class="cl-pills"><span class="cl-pill">${ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', 18)}나중에 알림</span><span class="cl-pill">${ic('<path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.8-5.3A8.5 8.5 0 1 1 21 11.5z"/>', 18)}메시지</span></div>` +
+      '<div class="cl-btns">' +
+        `<div class="cl-bw"><button type="button" class="cl-round red" id="clDecline" aria-label="거절">${phoneSvg(135)}</button>거절</div>` +
+        `<div class="cl-bw"><button type="button" class="cl-round green pulse" id="clAccept" aria-label="수락">${phoneSvg(0)}</button>수락</div>` +
+      '</div>' +
+    '</div>' +
+    // 통화 중 화면
+    '<div class="cl-screen cl-call" hidden>' +
+      `<div class="cl-head"><div class="cl-name">${esc(SPECIAL.contact)}</div><div class="cl-label" id="clLabel">00:00</div></div>` +
+      '<div class="cl-subs" id="clSubs"></div>' +
+      `<div class="cl-lower"><div class="cl-grid">${grid}</div><div class="cl-picks" id="clPicks"></div></div>` +
+      `<div class="cl-endwrap"><button type="button" class="cl-round red" aria-label="통화 종료">${phoneSvg(135)}</button></div>` +
+    '</div>' +
+    '<div class="cl-cover"></div>';
+
+  el.querySelector('.cl-bg').style.backgroundImage = `url("${scenario.assets.instaProfile}"), linear-gradient(160deg,#6b7aa1,#2d3250)`;
+  const q = (sel) => el.querySelector(sel);
+  const ui = {
+    el, cover: q('.cl-cover'), timer: 0,
+    waitAccept() {
+      return new Promise((res) => {
+        q('#clAccept').onclick = res;
+        q('#clDecline').onclick = () => { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); };
+      });
+    },
+    showCall() { q('.cl-in').hidden = true; q('.cl-call').hidden = false; ui.startTimer(); },
+    startTimer() {
+      const t0 = Date.now();
+      const tick = () => {
+        const sec = Math.floor((Date.now() - t0) / 1000);
+        q('#clLabel').textContent = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+      };
+      tick();
+      ui.timer = setInterval(tick, 500);
+    },
+    stopTimer() { clearInterval(ui.timer); },
+    setLabel(t) { q('#clLabel').textContent = t; },
+    setSub(text, who) {
+      const box = q('#clSubs');
+      box.innerHTML = '';
+      if (!text) return;
+      const sp = document.createElement('span');
+      sp.className = 'cl-line' + (who === 'me' ? ' me' : '');
+      sp.textContent = text;
+      box.appendChild(sp);
+    },
+    pick(options) {
+      return new Promise((res) => {
+        const box = q('#clPicks');
+        box.innerHTML = '';
+        options.forEach((o, i) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'cl-pick';
+          b.textContent = o.text;
+          b.onclick = () => {
+            box.querySelectorAll('button').forEach((x) => { x.disabled = true; });
+            blip(1200);
+            setTimeout(() => { el.classList.remove('picking'); box.innerHTML = ''; res(i); }, 350);
+          };
+          box.appendChild(b);
+        });
+        el.classList.add('picking');
+      });
+    },
+  };
+  return ui;
+}
+
+// 한 구간(음성 + 자막) 재생. mp3가 없거나 로드 실패하면 글자 수 기준 타이밍으로 자막만 진행
+function callPlayClip(ui, who, clip) {
+  return new Promise((res) => {
+    const lines = clip.lines || [];
+    const weight = lines.map((l) => Math.max(6, Array.from(l).length));
+    const sum = weight.reduce((a, b) => a + b, 0) || 1;
+    const fallbackMs = 1000 + sum * 170;
+    const timers = [];
+    let audio = null; let started = false; let done = false;
+    const fin = () => {
+      if (done) return; done = true;
+      timers.forEach(clearTimeout);
+      try { audio && audio.pause(); } catch { /* noop */ }
+      ui.setSub('', who);
+      res();
+    };
+    const start = (ms, playAudio) => {
+      if (started) return; started = true;
+      if (playAudio && audio) safePlay(audio);
+      let t = 0;
+      lines.forEach((l, i) => { timers.push(setTimeout(() => ui.setSub(l, who), t)); t += (ms * weight[i]) / sum; });
+      timers.push(setTimeout(fin, ms + 500));
+    };
+    if (!clip.audio) { start(fallbackMs, false); return; }
+    try {
+      audio = new Audio(clip.audio);
+      audio.volume = 1;
+      audio.addEventListener('error', () => start(fallbackMs, false));
+      audio.addEventListener('loadedmetadata', () => {
+        const d = audio.duration;
+        start(isFinite(d) && d > 0 ? d * 1000 : fallbackMs, true);
+      });
+      audio.addEventListener('ended', () => { timers.push(setTimeout(fin, 250)); });
+      timers.push(setTimeout(() => start(fallbackMs, false), 2500)); // 메타데이터가 안 오면 대체
+      audio.load();
+    } catch { start(fallbackMs, false); }
+  });
+}
+
+async function runSpecialCall(g) {
+  const phone = $('#phone') || document.body;
+  const ui = buildCallUI();
+  phone.appendChild(ui.el);
+  requestAnimationFrame(() => ui.el.classList.add('on'));
+
+  // 벨소리 (수락할 때까지 반복)
+  try {
+    callRing = new Audio(SPECIAL.ring);
+    callRing.loop = true;
+    callRing.volume = Math.max(0.5, settings.bgm);
+    callRing.addEventListener('error', () => {});
+    safePlay(callRing);
+  } catch { callRing = null; }
+
+  await ui.waitAccept();
+  try { callRing && callRing.pause(); } catch { /* noop */ }
+  callRing = null;
+  if (g !== GEN) throw ABORT;
+  ui.showCall();
+  await sleep(700);
+
+  for (const item of SPECIAL.script) {
+    if (g !== GEN) throw ABORT;
+    if (item.kang) {
+      await callPlayClip(ui, 'kang', item.kang);
+    } else if (item.pick) {
+      await sleep(300);
+      const i = await ui.pick(item.pick);
+      if (g !== GEN) throw ABORT;
+      await sleep(250);
+      await callPlayClip(ui, 'me', item.pick[i]);
+      if (item.pick[i].after) { await sleep(350); await callPlayClip(ui, 'me', item.pick[i].after); }
+    }
+    await sleep(450);
+  }
+  ui.stopTimer();
+  ui.setLabel('통화 종료');
+  await sleep(1400);
+  return ui;
+}
+
+async function playSpecialEnding() {
+  const g = ++GEN;
+  cleanup();
+  sound.stop();
+  state = freshState();
+  state.year = 2026;
+  state.room = 'kang26';
+  state.roomName = scenario.rooms.kang26.name;
+  state.date = SPECIAL.date;
+  state.time = SPECIAL.time;
+  renderLog();
+  updateHeader();
+  try {
+    await goScreen('messenger', 'black', 1200);
+    if (g !== GEN) return;
+    addDivider();
+    await runSteps(think(...SPECIAL.thoughts), g);
+    clearThought();
+    await runSteps(me(...SPECIAL.texts), g);
+    await sleep(SPECIAL.ringDelayMs);
+    if (g !== GEN) throw ABORT;
+
+    const ui = await runSpecialCall(g);
+
+    // 서서히 검은 화면 → 스페셜 엔딩 화면
+    ui.cover.style.transition = 'opacity 2.6s ease';
+    ui.cover.style.opacity = '1';
+    await sleep(2800);
+    if (g !== GEN) throw ABORT;
+    $('#endLabel').textContent = 'SPECIAL ENDING';
+    $('#endTitle').textContent = SPECIAL.title;
+    const rv = $('#toReveal');
+    rv.style.display = 'none';
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'menu-btn center';
+    back.textContent = '타이틀로';
+    rv.parentNode.appendChild(back);
+    back.onclick = () => { back.remove(); rv.style.display = ''; toTitle(); };
+    await goScreen('endcard');
+    ui.el.style.transition = 'opacity 1.6s ease';
+    ui.el.style.opacity = '0';
+    await sleep(1700);
+    ui.el.remove();
+  } catch (e) {
+    { const o = $('#callOverlay'); if (o) o.remove(); }
+    try { callRing && callRing.pause(); } catch { /* noop */ }
+    callRing = null;
+    if (e !== ABORT) {
+      console.error(e);
+      toast('오류: ' + (e && e.message ? e.message : e));
+    }
+  }
+}
+
 function openGallery() {
   const got = store.get(KEYS.endings, []);
   const wrap = document.createElement('div');
@@ -1495,6 +1821,17 @@ function openGallery() {
   hint.style.opacity = '.75';
   hint.textContent = got.length ? '달성한 엔딩을 누르면 다시 볼 수 있어요' : '';
   wrap.append(count, hint, grid);
+  // 엔딩 6개를 모두 모으면 맨 아래에 스페셜 엔딩 버튼이 열린다
+  if (scenario.endingOrder.every((id) => got.includes(id))) {
+    const sp = document.createElement('button');
+    sp.type = 'button';
+    sp.className = 'menu-btn primary';
+    sp.style.marginTop = '12px';
+    sp.style.width = '100%';
+    sp.textContent = '✨ 스페셜 엔딩';
+    sp.onclick = () => { closeModal(); playSpecialEnding(); };
+    wrap.appendChild(sp);
+  }
   openModal('엔딩 도감', wrap);
 }
 
